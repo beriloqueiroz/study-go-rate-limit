@@ -8,11 +8,14 @@ import (
 type FindCurrentLimiterByKeyDTO struct {
 	Count    int
 	UpdateAt time.Time
+	StartAt  time.Time
 }
 
 type SaveInputDTO struct {
+	Key      string
 	Count    int
 	UpdateAt time.Time
+	StartAt  time.Time
 }
 
 type RateLimitRepository interface {

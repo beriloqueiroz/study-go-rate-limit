@@ -2,7 +2,6 @@ package usecase
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/beriloqueiroz/study-go-rate-limit/internal/entity"
 )
@@ -29,10 +28,8 @@ type RateLimitUseCaseOutputDto struct {
 }
 
 func (uc *RateLimitUseCase) Execute(ctx context.Context, input RateLimitUseCaseInputDto) (*RateLimitUseCaseOutputDto, error) {
-	fmt.Println(input)
 	if input.Key != "" {
 		config, err := uc.configLimitRepository.FindLimitConfigByKey(ctx, input.Key)
-		fmt.Println(config)
 
 		if err != nil {
 			return nil, err
@@ -42,8 +39,20 @@ func (uc *RateLimitUseCase) Execute(ctx context.Context, input RateLimitUseCaseI
 			return nil, err
 		}
 		limiter := entity.NewKeyLimiter(
-			*entity.NewLimiterInfo(input.Key, counter.Count, config.LimitPerSecond, counter.UpdateAt, config.ExpirationTimeInMinutes),
+			*entity.NewLimiterInfo(input.Key, counter.Count, config.LimitPerSecond, counter.UpdateAt, config.ExpirationTimeInMinutes, counter.StartAt),
 		)
+
+		err = uc.rateLimitRepository.Save(ctx, &SaveInputDTO{
+			Count:    limiter.KeyInfo.Count,
+			UpdateAt: limiter.KeyInfo.UpdateAt,
+			Key:      limiter.KeyInfo.Key,
+			StartAt:  limiter.KeyInfo.StartAt,
+		})
+
+		if err != nil {
+			return nil, err
+		}
+
 		return &RateLimitUseCaseOutputDto{
 			Allow: !limiter.IsBlock(),
 		}, nil
@@ -58,10 +67,22 @@ func (uc *RateLimitUseCase) Execute(ctx context.Context, input RateLimitUseCaseI
 		return nil, err
 	}
 	limiter := entity.NewIpLimiter(
-		*entity.NewLimiterInfo(input.Ip, counter.Count, config.LimitPerSecond, counter.UpdateAt, config.ExpirationTimeInMinutes),
+		*entity.NewLimiterInfo(input.Ip, counter.Count, config.LimitPerSecond, counter.UpdateAt, config.ExpirationTimeInMinutes, counter.StartAt),
 	)
+
+	err = uc.rateLimitRepository.Save(ctx, &SaveInputDTO{
+		Count:    limiter.IpInfo.Count,
+		UpdateAt: limiter.IpInfo.UpdateAt,
+		Key:      limiter.IpInfo.Key,
+		StartAt:  limiter.IpInfo.StartAt,
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
 	return &RateLimitUseCaseOutputDto{
-		Allow: limiter.IsBlock(),
+		Allow: !limiter.IsBlock(),
 	}, nil
 
 }

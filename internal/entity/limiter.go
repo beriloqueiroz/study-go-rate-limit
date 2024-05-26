@@ -1,6 +1,8 @@
 package entity
 
-import "time"
+import (
+	"time"
+)
 
 type limiterInfo struct {
 	Key        string
@@ -8,64 +10,69 @@ type limiterInfo struct {
 	Limit      int
 	UpdateAt   time.Time
 	Expiration time.Duration
-	IsBlock    bool
+	StartAt    time.Time
 }
 
-func NewLimiterInfo(key string, count, limit int, updateAt time.Time, expiration time.Duration, isBlock bool) *limiterInfo {
+func NewLimiterInfo(key string, count, limit int, updateAt time.Time, expiration time.Duration, startAt time.Time) *limiterInfo {
 	return &limiterInfo{
 		Key:        key,
 		Count:      count,
 		Limit:      limit,
 		UpdateAt:   updateAt,
 		Expiration: expiration,
-		IsBlock:    isBlock,
+		StartAt:    startAt,
 	}
 }
 
 func (li *limiterInfo) isBlock() bool {
 	if li.Count >= li.Limit {
-		if li.UpdateAt.Add(li.Expiration).After(time.Now()) {
+		if time.Now().After(li.UpdateAt.Add(li.Expiration)) {
 			li.Count = 0
 			return false
 		}
-		li.IsBlock = true
 		return true
+	}
+
+	if li.Count == 0 {
+		li.StartAt = time.Now()
 	}
 
 	li.Count = li.Count + 1
 
-	if li.UpdateAt.After(time.Now().Add(-1 * time.Second)) {
+	if time.Now().Add(-time.Second).After(li.StartAt) {
 		li.Count = 0
 	}
+
+	li.UpdateAt = time.Now()
 
 	return false
 }
 
 type Limiter struct {
-	ipInfo  *limiterInfo
-	keyInfo *limiterInfo
+	IpInfo  *limiterInfo
+	KeyInfo *limiterInfo
 }
 
 func NewKeyLimiter(keyInfo limiterInfo) *Limiter {
 	return &Limiter{
-		ipInfo:  nil,
-		keyInfo: &keyInfo,
+		IpInfo:  nil,
+		KeyInfo: &keyInfo,
 	}
 }
 
 func NewIpLimiter(ipInfo limiterInfo) *Limiter {
 	return &Limiter{
-		ipInfo:  &ipInfo,
-		keyInfo: nil,
+		IpInfo:  &ipInfo,
+		KeyInfo: nil,
 	}
 }
 
 func (l *Limiter) IsBlock() bool {
-	if l.keyInfo != nil && l.keyInfo.Key != "" {
-		return l.keyInfo.isBlock()
+	if l.KeyInfo != nil && l.KeyInfo.Key != "" {
+		return l.KeyInfo.isBlock()
 	}
-	if l.ipInfo != nil && l.ipInfo.Key != "" {
-		return l.ipInfo.isBlock()
+	if l.IpInfo != nil && l.IpInfo.Key != "" {
+		return l.IpInfo.isBlock()
 	}
 	return false
 }

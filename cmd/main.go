@@ -25,7 +25,8 @@ func main() {
 	if err != nil {
 		panic(err)
 	}
-	server := webserver.NewWebServer(configs.WebServerPort, configs.RequestLimit)
+
+	server := webserver.NewWebServer(configs.WebServerPort, 2)
 	route := routes.NewTestSimpleRoute()
 	server.AddRoute("GET /", route.Handler)
 	srvErr := make(chan error, 1)
@@ -41,4 +42,12 @@ func main() {
 	case <-initCtx.Done():
 		log.Println("Shutting down due to other reason...")
 	}
+}
+
+func rateLimit(key string, ip string) {
+	if key != "" {
+		fmt.Println("Consider key")
+		return
+	}
+	fmt.Println("Consider ip")
 }

@@ -8,6 +8,18 @@ type limiterInfo struct {
 	Limit      int
 	UpdateAt   time.Time
 	Expiration time.Duration
+	IsBlock    bool
+}
+
+func NewLimiterInfo(key string, count, limit int, updateAt time.Time, expiration time.Duration, isBlock bool) *limiterInfo {
+	return &limiterInfo{
+		Key:        key,
+		Count:      count,
+		Limit:      limit,
+		UpdateAt:   updateAt,
+		Expiration: expiration,
+		IsBlock:    isBlock,
+	}
 }
 
 func (li *limiterInfo) isBlock() bool {
@@ -16,8 +28,16 @@ func (li *limiterInfo) isBlock() bool {
 			li.Count = 0
 			return false
 		}
+		li.IsBlock = true
 		return true
 	}
+
+	li.Count = li.Count + 1
+
+	if li.UpdateAt.After(time.Now().Add(-1 * time.Second)) {
+		li.Count = 0
+	}
+
 	return false
 }
 
@@ -26,10 +46,17 @@ type Limiter struct {
 	keyInfo *limiterInfo
 }
 
-func NewLimiter(ipInfo, keyInfo limiterInfo) *Limiter {
+func NewKeyLimiter(keyInfo limiterInfo) *Limiter {
+	return &Limiter{
+		ipInfo:  nil,
+		keyInfo: &keyInfo,
+	}
+}
+
+func NewIpLimiter(ipInfo limiterInfo) *Limiter {
 	return &Limiter{
 		ipInfo:  &ipInfo,
-		keyInfo: &keyInfo,
+		keyInfo: nil,
 	}
 }
 

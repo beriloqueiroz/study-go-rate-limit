@@ -8,8 +8,10 @@ import (
 	"os/signal"
 
 	config "github.com/beriloqueiroz/study-go-rate-limit/configs"
+	"github.com/beriloqueiroz/study-go-rate-limit/internal/infra/repository"
 	routes "github.com/beriloqueiroz/study-go-rate-limit/internal/infra/web/routes/api"
 	webserver "github.com/beriloqueiroz/study-go-rate-limit/internal/infra/web/server"
+	"github.com/beriloqueiroz/study-go-rate-limit/internal/usecase"
 )
 
 func main() {
@@ -26,7 +28,13 @@ func main() {
 		panic(err)
 	}
 
-	server := webserver.NewWebServer(configs.WebServerPort, 2)
+	configLimitRepository := &repository.ConfigLimitRepositoryImpl{
+		ConfigEnvironment: configs,
+	}
+	rateLimitRepository := &repository.RateLimitRepositoryImpl{}
+	rateLimitUseCase := usecase.NewRateLimitUseCase(rateLimitRepository, configLimitRepository)
+
+	server := webserver.NewWebServer(configs.WebServerPort, rateLimitUseCase)
 	route := routes.NewTestSimpleRoute()
 	server.AddRoute("GET /", route.Handler)
 	srvErr := make(chan error, 1)
@@ -42,12 +50,4 @@ func main() {
 	case <-initCtx.Done():
 		log.Println("Shutting down due to other reason...")
 	}
-}
-
-func rateLimit(key string, ip string) {
-	if key != "" {
-		fmt.Println("Consider key")
-		return
-	}
-	fmt.Println("Consider ip")
 }

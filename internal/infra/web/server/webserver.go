@@ -2,8 +2,9 @@ package webserver
 
 import (
 	"encoding/json"
-	"fmt"
 	"net/http"
+
+	"github.com/beriloqueiroz/study-go-rate-limit/internal/usecase"
 )
 
 type HandlerFuncMethod struct {
@@ -12,16 +13,16 @@ type HandlerFuncMethod struct {
 }
 
 type WebServer struct {
-	Handlers      map[string]http.HandlerFunc
-	WebServerPort string
-	RequestLimit  int
+	Handlers         map[string]http.HandlerFunc
+	WebServerPort    string
+	RateLimitUseCase *usecase.RateLimitUseCase
 }
 
-func NewWebServer(serverPort string, requestLimit int) *WebServer {
+func NewWebServer(serverPort string, rateLimitUseCase *usecase.RateLimitUseCase) *WebServer {
 	return &WebServer{
-		Handlers:      make(map[string]http.HandlerFunc),
-		WebServerPort: serverPort,
-		RequestLimit:  requestLimit,
+		Handlers:         make(map[string]http.HandlerFunc),
+		WebServerPort:    serverPort,
+		RateLimitUseCase: rateLimitUseCase,
 	}
 }
 
@@ -38,7 +39,7 @@ func (s *WebServer) Start() error {
 	return http.ListenAndServe(s.WebServerPort, mux)
 }
 
-type output struct {
+type ErrOut struct {
 	Message string
 }
 
@@ -46,16 +47,22 @@ func (s *WebServer) rateLimitMiddleware(handler http.HandlerFunc) http.HandlerFu
 	return func(w http.ResponseWriter, r *http.Request) {
 		ip := r.RemoteAddr
 		key := r.Header.Get("API_KEY")
-		if key == "" {
-			output := &output{
-				Message: "API_KEY not accept",
+
+		output, err := s.RateLimitUseCase.Execute(r.Context(), usecase.RateLimitUseCaseInputDto{
+			Ip:  ip,
+			Key: key,
+		})
+
+		if err == nil && !output.Allow {
+			errMsg := &ErrOut{
+				Message: "you have reached the maximum number of requests or actions allowed within a certain time frame",
 			}
 			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusBadRequest)
-			json.NewEncoder(w).Encode(output)
+			w.WriteHeader(http.StatusTooManyRequests)
+			json.NewEncoder(w).Encode(errMsg)
 			return
 		}
-		fmt.Printf("Rate limit verify, max:%d ip:%s, key:%s\n", s.RequestLimit, ip, key)
+
 		handler.ServeHTTP(w, r)
 	}
 }

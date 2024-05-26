@@ -67,7 +67,7 @@ func TestLimiterInfo_IsBlock_NotBlocked_CountGreaterThanLimitExpired(t *testing.
 	assert.False(t, limiter.isBlock())
 }
 
-func TestNewLimiter(t *testing.T) {
+func TestNewIpLimiter(t *testing.T) {
 	ipInfo := limiterInfo{
 		Key:        "ip",
 		Count:      5,
@@ -75,6 +75,13 @@ func TestNewLimiter(t *testing.T) {
 		UpdateAt:   time.Now(),
 		Expiration: 24 * time.Hour,
 	}
+
+	limiter := NewIpLimiter(ipInfo)
+
+	assert.Equal(t, ipInfo, *limiter.ipInfo)
+}
+
+func TestNewKeyLimiter(t *testing.T) {
 	keyInfo := limiterInfo{
 		Key:        "key",
 		Count:      3,
@@ -83,9 +90,8 @@ func TestNewLimiter(t *testing.T) {
 		Expiration: 24 * time.Hour,
 	}
 
-	limiter := NewLimiter(ipInfo, keyInfo)
+	limiter := NewKeyLimiter(keyInfo)
 
-	assert.Equal(t, ipInfo, *limiter.ipInfo)
 	assert.Equal(t, keyInfo, *limiter.keyInfo)
 }
 

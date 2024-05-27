@@ -3,7 +3,6 @@ package webserver
 import (
 	"encoding/json"
 	"net/http"
-	"strings"
 
 	"github.com/beriloqueiroz/study-go-rate-limit/internal/usecase"
 )
@@ -46,22 +45,24 @@ type ErrOut struct {
 
 func (s *WebServer) rateLimitMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ip := strings.Split(r.RemoteAddr, ":")[0]
+		ip := r.Header.Get("X-Forwarded-For")
 		key := r.Header.Get("API_KEY")
 
-		output, err := s.RateLimitUseCase.Execute(r.Context(), usecase.RateLimitUseCaseInputDto{
-			Ip:  ip,
-			Key: key,
-		})
+		if ip != "" && key != "" {
+			output, err := s.RateLimitUseCase.Execute(r.Context(), usecase.RateLimitUseCaseInputDto{
+				Ip:  ip,
+				Key: key,
+			})
 
-		if err == nil && !output.Allow {
-			errMsg := &ErrOut{
-				Message: "you have reached the maximum number of requests or actions allowed within a certain time frame",
+			if err == nil && !output.Allow {
+				errMsg := &ErrOut{
+					Message: "you have reached the maximum number of requests or actions allowed within a certain time frame",
+				}
+				w.Header().Set("Content-Type", "application/json")
+				w.WriteHeader(http.StatusTooManyRequests)
+				json.NewEncoder(w).Encode(errMsg)
+				return
 			}
-			w.Header().Set("Content-Type", "application/json")
-			w.WriteHeader(http.StatusTooManyRequests)
-			json.NewEncoder(w).Encode(errMsg)
-			return
 		}
 
 		handler.ServeHTTP(w, r)

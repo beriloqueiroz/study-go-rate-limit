@@ -15,7 +15,7 @@ type RateLimitRepositoryImpl struct {
 
 func (rr *RateLimitRepositoryImpl) FindCurrentLimiterByKey(ctx context.Context, key string) (*usecase.FindCurrentLimiterByKeyDTO, error) {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
+		Addr:     "redis:6379",
 		Password: "my-password",
 	})
 	val, err := rdb.Get(ctx, key).Bytes()

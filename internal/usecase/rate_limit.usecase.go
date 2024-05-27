@@ -38,14 +38,12 @@ func (uc *RateLimitUseCase) Execute(ctx context.Context, input RateLimitUseCaseI
 		}
 		counter, err := uc.rateLimitRepository.FindCurrentLimiterByKey(ctx, input.Key)
 		if err != nil {
-			fmt.Println("FindCurrentLimiterByKey 1 error", err)
+			fmt.Println("FindCurrentLimiterByKey by key error", err)
 			return nil, err
 		}
 		limiter := entity.NewKeyLimiter(
-			*entity.NewLimiterInfo(input.Key, counter.Count, config.LimitPerSecond, counter.UpdateAt, config.ExpirationTimeInMinutes, counter.StartAt),
+			entity.NewLimiterInfo(input.Key, counter.Count, config.LimitPerSecond, counter.UpdateAt, config.ExpirationTimeInMinutes, counter.StartAt),
 		)
-
-		allow := !limiter.IsBlock()
 
 		err = uc.rateLimitRepository.Save(ctx, &SaveInputDTO{
 			Count:    limiter.KeyInfo.Count,
@@ -55,12 +53,12 @@ func (uc *RateLimitUseCase) Execute(ctx context.Context, input RateLimitUseCaseI
 		})
 
 		if err != nil {
-			fmt.Println("Save 1 error", err)
+			fmt.Println("Save by key error", err)
 			return nil, err
 		}
 
 		return &RateLimitUseCaseOutputDto{
-			Allow: allow,
+			Allow: !limiter.IsBlock(),
 		}, nil
 	}
 
@@ -71,14 +69,12 @@ func (uc *RateLimitUseCase) Execute(ctx context.Context, input RateLimitUseCaseI
 	}
 	counter, err := uc.rateLimitRepository.FindCurrentLimiterByKey(ctx, input.Ip)
 	if err != nil {
-		fmt.Println("FindCurrentLimiterByKey 2 error", err)
+		fmt.Println("FindCurrentLimiterByKey by ip error", err)
 		return nil, err
 	}
 	limiter := entity.NewIpLimiter(
-		*entity.NewLimiterInfo(input.Ip, counter.Count, config.LimitPerSecond, counter.UpdateAt, config.ExpirationTimeInMinutes, counter.StartAt),
+		entity.NewLimiterInfo(input.Ip, counter.Count, config.LimitPerSecond, counter.UpdateAt, config.ExpirationTimeInMinutes, counter.StartAt),
 	)
-
-	allow := !limiter.IsBlock()
 
 	err = uc.rateLimitRepository.Save(ctx, &SaveInputDTO{
 		Count:    limiter.IpInfo.Count,
@@ -88,12 +84,12 @@ func (uc *RateLimitUseCase) Execute(ctx context.Context, input RateLimitUseCaseI
 	})
 
 	if err != nil {
-		fmt.Println("Save 1 error", err)
+		fmt.Println("Save by ip error", err)
 		return nil, err
 	}
 
 	return &RateLimitUseCaseOutputDto{
-		Allow: allow,
+		Allow: !limiter.IsBlock(),
 	}, nil
 
 }

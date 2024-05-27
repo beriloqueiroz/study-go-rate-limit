@@ -31,7 +31,10 @@ func main() {
 	configLimitRepository := &repository.ConfigLimitRepositoryImpl{
 		ConfigEnvironment: configs,
 	}
-	rateLimitRepository := &repository.RateLimitRepositoryImpl{}
+	rateLimitRepository := &repository.RateLimitRepositoryImpl{
+		Addr:     "redis:6379",
+		Password: "my-password",
+	}
 	rateLimitUseCase := usecase.NewRateLimitUseCase(rateLimitRepository, configLimitRepository)
 
 	server := webserver.NewWebServer(configs.WebServerPort, rateLimitUseCase)

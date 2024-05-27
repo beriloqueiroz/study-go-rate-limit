@@ -3,7 +3,6 @@ package repository
 import (
 	"context"
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/beriloqueiroz/study-go-rate-limit/internal/usecase"
@@ -11,12 +10,14 @@ import (
 )
 
 type RateLimitRepositoryImpl struct {
+	Addr     string
+	Password string
 }
 
 func (rr *RateLimitRepositoryImpl) FindCurrentLimiterByKey(ctx context.Context, key string) (*usecase.FindCurrentLimiterByKeyDTO, error) {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     "redis:6379",
-		Password: "my-password",
+		Addr:     rr.Addr,
+		Password: rr.Password,
 	})
 	val, err := rdb.Get(ctx, key).Bytes()
 
@@ -34,8 +35,6 @@ func (rr *RateLimitRepositoryImpl) FindCurrentLimiterByKey(ctx context.Context, 
 
 	json.Unmarshal(val, &output)
 
-	fmt.Println(output, key)
-
 	return &usecase.FindCurrentLimiterByKeyDTO{
 		Count:    output.Count,
 		UpdateAt: output.UpdateAt,
@@ -45,8 +44,8 @@ func (rr *RateLimitRepositoryImpl) FindCurrentLimiterByKey(ctx context.Context, 
 
 func (rr *RateLimitRepositoryImpl) Save(ctx context.Context, input *usecase.SaveInputDTO) error {
 	rdb := redis.NewClient(&redis.Options{
-		Addr:     "localhost:6379",
-		Password: "my-password",
+		Addr:     rr.Addr,
+		Password: rr.Password,
 	})
 	mr, _ := json.Marshal(&input)
 	err := rdb.Set(ctx, input.Key, mr, time.Second*10)

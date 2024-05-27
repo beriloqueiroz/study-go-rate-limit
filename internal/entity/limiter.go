@@ -4,17 +4,18 @@ import (
 	"time"
 )
 
-type limiterInfo struct {
+type LimiterInfo struct {
 	Key        string
 	Count      int
 	Limit      int
 	UpdateAt   time.Time
 	Expiration time.Duration
 	StartAt    time.Time
+	isBlocked  bool
 }
 
-func NewLimiterInfo(key string, count, limit int, updateAt time.Time, expiration time.Duration, startAt time.Time) *limiterInfo {
-	return &limiterInfo{
+func NewLimiterInfo(key string, count, limit int, updateAt time.Time, expiration time.Duration, startAt time.Time) *LimiterInfo {
+	return &LimiterInfo{
 		Key:        key,
 		Count:      count,
 		Limit:      limit,
@@ -24,16 +25,18 @@ func NewLimiterInfo(key string, count, limit int, updateAt time.Time, expiration
 	}
 }
 
-func (li *limiterInfo) isBlock() bool {
+func (li *LimiterInfo) Process() {
 	if li.Count >= li.Limit {
 		if time.Now().After(li.UpdateAt.Add(li.Expiration)) {
 			li.Count = 0
-			return false
+			li.isBlocked = false
+			return
 		}
-		return true
+		li.isBlocked = true
+		return
 	}
 
-	if li.Count == 0 {
+	if li.Count == 0 || li.StartAt.IsZero() {
 		li.StartAt = time.Now()
 	}
 
@@ -45,24 +48,30 @@ func (li *limiterInfo) isBlock() bool {
 
 	li.UpdateAt = time.Now()
 
-	return false
+	li.isBlocked = false
+}
+
+func (li *LimiterInfo) isBlock() bool {
+	return li.isBlocked
 }
 
 type Limiter struct {
-	IpInfo  *limiterInfo
-	KeyInfo *limiterInfo
+	IpInfo  *LimiterInfo
+	KeyInfo *LimiterInfo
 }
 
-func NewKeyLimiter(keyInfo limiterInfo) *Limiter {
+func NewKeyLimiter(keyInfo *LimiterInfo) *Limiter {
+	keyInfo.Process()
 	return &Limiter{
 		IpInfo:  nil,
-		KeyInfo: &keyInfo,
+		KeyInfo: keyInfo,
 	}
 }
 
-func NewIpLimiter(ipInfo limiterInfo) *Limiter {
+func NewIpLimiter(ipInfo *LimiterInfo) *Limiter {
+	ipInfo.Process()
 	return &Limiter{
-		IpInfo:  &ipInfo,
+		IpInfo:  ipInfo,
 		KeyInfo: nil,
 	}
 }

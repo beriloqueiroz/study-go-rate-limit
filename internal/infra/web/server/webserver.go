@@ -2,6 +2,7 @@ package webserver
 
 import (
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/beriloqueiroz/study-go-rate-limit/internal/usecase"
@@ -47,8 +48,8 @@ func (s *WebServer) rateLimitMiddleware(handler http.HandlerFunc) http.HandlerFu
 	return func(w http.ResponseWriter, r *http.Request) {
 		ip := r.Header.Get("X-Forwarded-For")
 		key := r.Header.Get("API_KEY")
-
-		if ip != "" && key != "" {
+		fmt.Println(ip, key)
+		if ip != "" || key != "" {
 			output, err := s.RateLimitUseCase.Execute(r.Context(), usecase.RateLimitUseCaseInputDto{
 				Ip:  ip,
 				Key: key,

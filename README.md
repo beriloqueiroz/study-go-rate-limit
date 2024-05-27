@@ -67,6 +67,27 @@
     go test ./...
   ```
 
+- configuração das variáveis de ambiente
+  - usar arquivo: .env.config
+
+    ```json
+    {
+      "web_server_port": ":8080",
+      "default_limit_per_ip_per_second": 3,
+      "default_expiration_time_in_minutes": 2,
+      "default_api_keys_limit_per_second": [
+          {
+            "api_key": "1",
+            "limit_per_second": 3
+          },
+          {
+            "api_key": "2",
+            "limit_per_second": 1
+          }
+        ]
+    }
+    ```
+
 - aplicação na porta 8080, e redis:
 
   ```bash

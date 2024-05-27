@@ -3,6 +3,7 @@ package webserver
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 
 	"github.com/beriloqueiroz/study-go-rate-limit/internal/usecase"
 )
@@ -45,7 +46,7 @@ type ErrOut struct {
 
 func (s *WebServer) rateLimitMiddleware(handler http.HandlerFunc) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		ip := r.RemoteAddr
+		ip := strings.Split(r.RemoteAddr, ":")[0]
 		key := r.Header.Get("API_KEY")
 
 		output, err := s.RateLimitUseCase.Execute(r.Context(), usecase.RateLimitUseCaseInputDto{

@@ -2,6 +2,7 @@ package usecase
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/beriloqueiroz/study-go-rate-limit/internal/entity"
 )
@@ -32,15 +33,19 @@ func (uc *RateLimitUseCase) Execute(ctx context.Context, input RateLimitUseCaseI
 		config, err := uc.configLimitRepository.FindLimitConfigByKey(ctx, input.Key)
 
 		if err != nil {
+			fmt.Println("FindLimitConfigByKey error", err)
 			return nil, err
 		}
 		counter, err := uc.rateLimitRepository.FindCurrentLimiterByKey(ctx, input.Key)
 		if err != nil {
+			fmt.Println("FindCurrentLimiterByKey 1 error", err)
 			return nil, err
 		}
 		limiter := entity.NewKeyLimiter(
 			*entity.NewLimiterInfo(input.Key, counter.Count, config.LimitPerSecond, counter.UpdateAt, config.ExpirationTimeInMinutes, counter.StartAt),
 		)
+
+		allow := !limiter.IsBlock()
 
 		err = uc.rateLimitRepository.Save(ctx, &SaveInputDTO{
 			Count:    limiter.KeyInfo.Count,
@@ -50,25 +55,30 @@ func (uc *RateLimitUseCase) Execute(ctx context.Context, input RateLimitUseCaseI
 		})
 
 		if err != nil {
+			fmt.Println("Save 1 error", err)
 			return nil, err
 		}
 
 		return &RateLimitUseCaseOutputDto{
-			Allow: !limiter.IsBlock(),
+			Allow: allow,
 		}, nil
 	}
 
 	config, err := uc.configLimitRepository.FindLimitConfigByIp(ctx, input.Ip)
 	if err != nil {
+		fmt.Println("FindLimitConfigByIp error", err)
 		return nil, err
 	}
 	counter, err := uc.rateLimitRepository.FindCurrentLimiterByKey(ctx, input.Ip)
 	if err != nil {
+		fmt.Println("FindCurrentLimiterByKey 2 error", err)
 		return nil, err
 	}
 	limiter := entity.NewIpLimiter(
 		*entity.NewLimiterInfo(input.Ip, counter.Count, config.LimitPerSecond, counter.UpdateAt, config.ExpirationTimeInMinutes, counter.StartAt),
 	)
+
+	allow := !limiter.IsBlock()
 
 	err = uc.rateLimitRepository.Save(ctx, &SaveInputDTO{
 		Count:    limiter.IpInfo.Count,
@@ -78,11 +88,12 @@ func (uc *RateLimitUseCase) Execute(ctx context.Context, input RateLimitUseCaseI
 	})
 
 	if err != nil {
+		fmt.Println("Save 1 error", err)
 		return nil, err
 	}
 
 	return &RateLimitUseCaseOutputDto{
-		Allow: !limiter.IsBlock(),
+		Allow: allow,
 	}, nil
 
 }

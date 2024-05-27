@@ -1,0 +1,24 @@
+
+version: '3.8'
+services:
+  # app:
+  #   build: 
+  #     context: .
+  #     dockerfile: "Dockerfile"
+  #   ports:
+  #     - "8080:8080"
+  #   depends_on:
+  #     - redis
+
+  redis:
+    image: redis:latest
+    restart: always
+    ports:
+      - "6379:6379"
+    volumes:
+    - ./.docker/redis/data:/root/redis
+    - ./.docker/redis/redis.conf:/usr/local/etc/redis/redis.conf
+    command: redis-server /usr/local/etc/redis/redis.conf --requirepass my-password
+    # environment:
+    #   - REDIS_PASSWORD=my-password
+    #   - REDIS_PORT=6379

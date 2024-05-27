@@ -21,7 +21,7 @@ func LoadConfig(paths []string) (*Conf, error) {
 	for _, path := range paths {
 		viper.AddConfigPath(path)
 	}
-	viper.SetConfigFile(".env")
+	viper.SetConfigFile(".env.config")
 	viper.AutomaticEnv()
 	err := viper.ReadInConfig()
 	if err != nil {

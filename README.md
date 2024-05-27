@@ -114,3 +114,6 @@
   --header 'User-Agent: Thunder Client (https://www.thunderclient.com)' \
   --header 'API_KEY: assdbasksdbas=aa'
    ```
+
+- e2e tests and stress with jmeter
+  - arquivo jmetet_stress.jmx
